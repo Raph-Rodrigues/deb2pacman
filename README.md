@@ -1,5 +1,5 @@
-<div align="center">
 # 📦 deb2pacman
+<div align="center">
  
 **Converta pacotes Debian (`.deb`) em pacotes nativos do Arch Linux (`.pkg.tar.zst`) com um único comando.**
  
@@ -9,6 +9,7 @@
 ![Interface](https://img.shields.io/badge/interface-CLI-success)
  
 </div>
+
 ---
  
 ## 📑 Sumário
