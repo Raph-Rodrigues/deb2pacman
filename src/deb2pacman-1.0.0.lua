@@ -1,0 +1,1 @@
+/mnt/Dados/Documentos/personal-programming/deb2pacman/deb2pacman-1.0.0.lua
