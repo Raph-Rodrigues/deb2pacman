@@ -59,39 +59,39 @@ jobs:
           # Faz o upload automático do pacote compilado para a release gerada
           files: "*.pkg.tar.zst"
 
-      - name: Publicar no AUR
-        env:
-          # Injeta a chave privada cadastrada nos secrets do GitHub
-          AUR_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-        run: |
-          # 1. Configurar SSH para o AUR
-          mkdir -p ~/.ssh
-          echo "$AUR_PRIVATE_KEY" > ~/.ssh/aur_key
-          chmod 600 ~/.ssh/aur_key
-          # Adiciona a impressão digital do servidor AUR para evitar o prompt interativo
-          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
-          
-          # 2. Configurar identidade do Git
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # 3. Gerar o arquivo .SRCINFO (obrigatório para pacotes AUR)
-          su builduser -c "makepkg --printsrcinfo > .SRCINFO"
-          
-          # 4. Clonar o repositório do pacote no AUR
-          # Configure o comando Git para usar a chave SSH que acabamos de criar
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur_key"
-          git clone ssh://aur@aur.archlinux.org/deb2pacman.git aur-repo
-          
-          # 5. Copiar os arquivos atualizados e enviar
-          cp PKGBUILD .SRCINFO aur-repo/
-          cd aur-repo
-          
-          # Verifica se há mudanças. Se houver, comita e faz o push
-          if [[ -n $(git status -s) ]]; then
-            git add PKGBUILD .SRCINFO
-            git commit -m "chore: Atualiza para a versão ${VERSION}"
-            git push origin master
-          else
-            echo "Nenhuma mudança detectada no PKGBUILD."
-          fi
+      # - name: Publicar no AUR
+      #   env:
+      #     # Injeta a chave privada cadastrada nos secrets do GitHub
+      #     AUR_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+      #   run: |
+      #     # 1. Configurar SSH para o AUR
+      #     mkdir -p ~/.ssh
+      #     echo "$AUR_PRIVATE_KEY" > ~/.ssh/aur_key
+      #     chmod 600 ~/.ssh/aur_key
+      #     # Adiciona a impressão digital do servidor AUR para evitar o prompt interativo
+      #     ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+      #
+      #     # 2. Configurar identidade do Git
+      #     git config --global user.name "github-actions[bot]"
+      #     git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      #
+      #     # 3. Gerar o arquivo .SRCINFO (obrigatório para pacotes AUR)
+      #     su builduser -c "makepkg --printsrcinfo > .SRCINFO"
+      #
+      #     # 4. Clonar o repositório do pacote no AUR
+      #     # Configure o comando Git para usar a chave SSH que acabamos de criar
+      #     export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur_key"
+      #     git clone ssh://aur@aur.archlinux.org/deb2pacman.git aur-repo
+      #
+      #     # 5. Copiar os arquivos atualizados e enviar
+      #     cp PKGBUILD .SRCINFO aur-repo/
+      #     cd aur-repo
+      #
+      #     # Verifica se há mudanças. Se houver, comita e faz o push
+      #     if [[ -n $(git status -s) ]]; then
+      #       git add PKGBUILD .SRCINFO
+      #       git commit -m "chore: Atualiza para a versão ${VERSION}"
+      #       git push origin master
+      #     else
+      #       echo "Nenhuma mudança detectada no PKGBUILD."
+      #     fi

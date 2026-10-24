@@ -7,8 +7,7 @@ arch=('any')
 url="https://github.com/Raph-Rodrigues/deb2pacman"
 license=('MIT')
 depends=('lua' 'binutils' 'libarchive' 'zstd')
-# Substitua o link abaixo pela release ou link raw oficial do seu código
-source=("${pkgname}-${pkgver}.lua::https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPOSITORIO/main/deb2pacman.lua")
+source=("${pkgname}-${pkgver}.lua::https://raw.githubusercontent.com/Raph-Rodrigues/deb2pacman/refs/heads/main/main.lua")
 sha256sums=('SKIP') # Em produção, substitua SKIP pelo hash real gerado com 'updpkgsums'
 
 package() {

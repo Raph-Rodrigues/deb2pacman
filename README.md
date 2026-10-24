@@ -87,8 +87,11 @@ cd deb2pacman
  
 # 2. Instale o script como "deb2pacman" (já com permissão de execução)
 sudo install -Dm755 main.lua /usr/local/bin/deb2pacman
+
+# 3. tem a opção de instalar via curl 
+curl -sSL [https://raw.githubusercontent.com/Raph-Rodrigues/deb2pacman/refs/heads/main/install.sh](https://raw.githubusercontent.com/Raph-Rodrigues/deb2pacman/refs/heads/main/install.sh) | sudo bash
 ```
- 
+
 Para desinstalar:
  
 ```bash

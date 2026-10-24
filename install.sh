@@ -15,8 +15,7 @@ echo "-> Instalando dependências..."
 pacman -S --needed --noconfirm lua binutils libarchive zstd
 
 echo "-> Baixando deb2pacman..."
-# Substitua a URL abaixo pelo link "Raw" real do seu repositório no GitHub/GitLab
-SCRIPT_URL="https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPOSITORIO/main/deb2pacman.lua"
+SCRIPT_URL="https://raw.githubusercontent.com/Raph-Rodrigues/deb2pacman/refs/heads/main/main.lua"
 curl -sSL "$SCRIPT_URL" -o /usr/local/bin/deb2pacman
 
 echo "-> Aplicando permissões de execução..."
