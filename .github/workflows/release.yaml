@@ -1,0 +1,97 @@
+name: Release Arch Linux Package
+
+on:
+  push:
+    tags:
+      - 'v*' # Dispara quando você envia uma tag (ex: git push origin v1.0.0)
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    # Usa a imagem oficial do Arch Linux como base para o job
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Fazer checkout do código
+        uses: actions/checkout@v4
+
+      - name: Capturar versão da tag
+        run: |
+          # Remove a letra 'v' da tag (ex: v1.0.0 vira 1.0.0)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Atualizar versão no PKGBUILD
+        run: |
+          # Substitui a versão no arquivo PKGBUILD
+          sed -i "s/^pkgver=.*/pkgver=${VERSION}/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+
+      - name: Configurar ambiente de build (Arch Linux)
+        run: |
+          # Instala ferramentas essenciais de empacotamento
+          pacman -Syu --noconfirm base-devel sudo git
+          
+          # O comando 'makepkg' bloqueia a execução como root. 
+          # Criando um usuário temporário para o build:
+          useradd builduser -m
+          passwd -d builduser
+          echo 'builduser ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          
+          # Dar permissão ao usuário na pasta de trabalho
+          chown -R builduser:builduser .
+
+      - name: Gerar Checksums e Pacote
+        run: |
+          # Atualiza os hashes (sha256sums) no PKGBUILD automaticamente
+          su builduser -c "updpkgsums"
+          
+          # Constrói o pacote pacman (.pkg.tar.zst)
+          su builduser -c "makepkg -s --noconfirm"
+
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Faz o upload automático do pacote compilado para a release gerada
+          files: "*.pkg.tar.zst"
+
+      - name: Publicar no AUR
+        env:
+          # Injeta a chave privada cadastrada nos secrets do GitHub
+          AUR_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          # 1. Configurar SSH para o AUR
+          mkdir -p ~/.ssh
+          echo "$AUR_PRIVATE_KEY" > ~/.ssh/aur_key
+          chmod 600 ~/.ssh/aur_key
+          # Adiciona a impressão digital do servidor AUR para evitar o prompt interativo
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+          
+          # 2. Configurar identidade do Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # 3. Gerar o arquivo .SRCINFO (obrigatório para pacotes AUR)
+          su builduser -c "makepkg --printsrcinfo > .SRCINFO"
+          
+          # 4. Clonar o repositório do pacote no AUR
+          # Configure o comando Git para usar a chave SSH que acabamos de criar
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur_key"
+          git clone ssh://aur@aur.archlinux.org/deb2pacman.git aur-repo
+          
+          # 5. Copiar os arquivos atualizados e enviar
+          cp PKGBUILD .SRCINFO aur-repo/
+          cd aur-repo
+          
+          # Verifica se há mudanças. Se houver, comita e faz o push
+          if [[ -n $(git status -s) ]]; then
+            git add PKGBUILD .SRCINFO
+            git commit -m "chore: Atualiza para a versão ${VERSION}"
+            git push origin master
+          else
+            echo "Nenhuma mudança detectada no PKGBUILD."
+          fi
