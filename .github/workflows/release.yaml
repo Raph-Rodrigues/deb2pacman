@@ -34,7 +34,7 @@ jobs:
       - name: Configurar ambiente de build (Arch Linux)
         run: |
           # Instala ferramentas essenciais de empacotamento
-          pacman -Syu --noconfirm base-devel sudo git
+          pacman -Syu --noconfirm base-devel sudo git pacman-contrib
           
           # O comando 'makepkg' bloqueia a execução como root. 
           # Criando um usuário temporário para o build:

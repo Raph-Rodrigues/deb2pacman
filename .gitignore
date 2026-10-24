@@ -1,0 +1,37 @@
+# ==============================================================================
+# makepkg — empacotamento do próprio deb2pacman (PKGBUILD)
+# ==============================================================================
+# Diretórios de trabalho criados pelo makepkg (ancorados na raiz do repositório)
+/src/
+/pkg/
+
+# Pacotes e assinaturas gerados (ex.: deb2pacman-1.0.0-1-any.pkg.tar.zst)
+*.pkg.tar.*
+
+# Pacotes-fonte gerados por `makepkg --source`
+*.src.tar.*
+
+# Fontes baixadas pelo makepkg (ex.: deb2pacman-1.0.0.lua)
+/deb2pacman-*.lua
+
+# Logs do makepkg
+*.log
+
+# ==============================================================================
+# Uso e testes do deb2pacman
+# ==============================================================================
+# Pacotes Debian usados como entrada nos testes
+*.deb
+
+# (os pacotes convertidos, *-bin-*.pkg.tar.zst, já são cobertos por *.pkg.tar.*)
+
+# ==============================================================================
+# Editores, IDEs e sistema operacional
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
