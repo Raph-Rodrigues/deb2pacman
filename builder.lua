@@ -1,5 +1,6 @@
 local builder = {}
 local translator = require("translator")
+local utils = require("utils")
 
 function builder.parse_control(tmp_dir, deb_file, verbose, logger)
 	local control_file = io.open(tmp_dir .. "/control/control", "r")
@@ -38,6 +39,10 @@ end
 
 function builder.build(tmp_dir, pwd, pkgname, pkgver, arch, pkgdesc, deps, verbose, logger)
 	local pkginfo = io.open(tmp_dir .. "/pkg/.PKGINFO", "w")
+	if not pkginfo then
+		logger.err("Não foi possível criar o arquivo .PKGINFO")
+	end
+
 	pkginfo:write("pkgname = " .. pkgname .. "-bin\n")
 	pkginfo:write("pkgver = " .. pkgver .. "\n")
 	pkginfo:write("pkgdesc = " .. pkgdesc .. "\n")
@@ -49,12 +54,25 @@ function builder.build(tmp_dir, pwd, pkgname, pkgver, arch, pkgdesc, deps, verbo
 	pkginfo:close()
 
 	local output_pkg = pkgname .. "-bin-" .. pkgver .. "-" .. arch .. ".pkg.tar.zst"
+	local output_path = utils.to_absolute(output_pkg, pwd)
 	local bsdtar_cmd = verbose and "bsdtar --zstd -cvf" or "bsdtar --zstd -cf"
 	local redirect = verbose and "" or " >/dev/null 2>&1"
+	local q = utils.shell_quote
 
-	os.execute(
-		"cd " .. tmp_dir .. "/pkg && " .. bsdtar_cmd .. " " .. pwd .. "/" .. output_pkg .. " .PKGINFO *" .. redirect
+	local ok, _, code = os.execute(
+		"cd "
+			.. q(tmp_dir .. "/pkg")
+			.. " && "
+			.. bsdtar_cmd
+			.. " "
+			.. q(output_path)
+			.. " .PKGINFO *"
+			.. redirect
 	)
+	if ok == nil or ok == false or (type(ok) == "number" and ok ~= 0) then
+		logger.err("Falha ao criar o pacote final" .. (code and (" (código " .. code .. ")") or ""))
+	end
+
 	return output_pkg
 end
 

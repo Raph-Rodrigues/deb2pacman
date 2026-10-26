@@ -13,6 +13,7 @@
 
 # Fontes baixadas pelo makepkg (ex.: deb2pacman-1.0.0.lua)
 /deb2pacman-*.lua
+build/
 
 # Logs do makepkg
 *.log

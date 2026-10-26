@@ -57,7 +57,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           # Faz o upload automático do pacote compilado para a release gerada
-          files: "*.pkg.tar.zst"
+          files: "build/*.pkg.tar.zst"
 
       # - name: Publicar no AUR
       #   env:

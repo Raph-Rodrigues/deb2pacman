@@ -1,8 +1,15 @@
 #!/usr/bin/env lua
 
+-- Permite executar o script de qualquer diretório instalando os módulos ao lado dele.
+local script_dir = debug.getinfo(1, "S").source:match("^@(.*)[/\\]")
+if script_dir and script_dir ~= "" then
+	package.path = script_dir .. "/?.lua;" .. package.path
+end
+
 local logger = require("logger")
 local extractor = require("extractor")
 local builder = require("builder")
+local utils = require("utils")
 
 local verbose = false
 local deb_file = nil
@@ -27,23 +34,37 @@ for i = 1, #arg do
 	end
 end
 
-if not deb_file or not deb_file:match("%,deb$") then
-	logger.err("O arquivo forncecido é inválido ou não possui a extensão .deb")
+if not deb_file or not deb_file:lower():match("%.deb$") then
+	logger.err("O arquivo fornecido é inválido ou não possui a extensão .deb")
 end
 
-local f = io.open(deb_file, "r")
+local pwd = io.popen("pwd"):read("*l")
+local deb_path = utils.to_absolute(deb_file, pwd)
+
+local f = io.open(deb_path, "rb")
 if not f then
-	logger.err("Arquivo não encontrado: " .. deb_file)
+	logger.err("Arquivo não encontrado: " .. deb_path)
 end
 f:close()
 
-local pwd = io.popen("pwd"):read("*l")
 local temp_dir = os.tmpname()
 os.remove(temp_dir)
-os.execute("mkdir -p " .. temp_dir .. "/{src,pkg,control}")
+
+local q = utils.shell_quote
+local ok = os.execute(
+	"mkdir -p "
+		.. q(temp_dir .. "/src")
+		.. " "
+		.. q(temp_dir .. "/pkg")
+		.. " "
+		.. q(temp_dir .. "/control")
+)
+if ok == nil or ok == false then
+	logger.err("Não foi possível criar o diretório temporário: " .. temp_dir)
+end
 
 logger.info("Extraindo pacote " .. deb_file .. "...")
-extractor.extract(deb_file, temp_dir, pwd, verbose, logger)
+extractor.extract(deb_path, temp_dir, verbose, logger)
 
 logger.info("Lendo metadados (control) ...")
 local pkgname, pkgver, arch, pkgdesc, deps = builder.parse_control(temp_dir, deb_file, verbose, logger)
@@ -51,7 +72,7 @@ local pkgname, pkgver, arch, pkgdesc, deps = builder.parse_control(temp_dir, deb
 logger.info("Compactando novo pacote pacman...")
 local output_pkg = builder.build(temp_dir, pwd, pkgname, pkgver, arch, pkgdesc, deps, verbose, logger)
 
-os.execute("rm -rf " .. temp_dir)
+os.execute("rm -rf " .. q(temp_dir))
 
 logger.success("Concluído! Pacote criado: " .. logger.color().yellow .. output_pkg)
 print("\nInstale com: sudo pacman -U " .. output_pkg)

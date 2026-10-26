@@ -24,13 +24,14 @@
 - [Regras de conversão](#-regras-de-conversão)
 - [Estrutura do pacote gerado](#-estrutura-do-pacote-gerado)
 - [Personalizando o mapa de dependências](#-personalizando-o-mapa-de-dependências)
+- [Versionamento e release](#-versionamento-e-release)
 - [Limitações conhecidas](#️-limitações-conhecidas)
 - [Códigos de saída](#-códigos-de-saída)
 ---
  
 ## 🔎 Visão geral
  
-O **deb2pacman** é um utilitário de linha de comando, escrito em um único script Lua, que pega um arquivo `.deb` (formato de pacote do Debian, Ubuntu e derivados) e produz um pacote `.pkg.tar.zst` que pode ser instalado diretamente com `pacman -U`.
+O **deb2pacman** é um utilitário de linha de comando, escrito em Lua e organizado em módulos, que pega um arquivo `.deb` (formato de pacote do Debian, Ubuntu e derivados) e produz um pacote `.pkg.tar.zst` que pode ser instalado diretamente com `pacman -U`.
  
 Ele **não recompila nada**: os binários e arquivos do programa são reaproveitados como estão. O script apenas extrai o conteúdo do `.deb`, traduz os metadados (nome, versão, arquitetura, descrição e dependências) para o formato que o `pacman` entende e reempacota tudo.
  
@@ -77,28 +78,31 @@ sudo pacman -S --needed lua binutils tar libarchive zstd xz
 ---
  
 ## 🚀 Instalação
- 
-O script está no arquivo `main.lua`. Para usá-lo como um comando global:
- 
+
+O programa é dividido em `main.lua` e nos módulos `logger.lua`, `extractor.lua`, `builder.lua`, `translator.lua` e `utils.lua`. O instalador copia todos eles para `/usr/local/lib/deb2pacman` e cria o comando `deb2pacman` em `/usr/local/bin`.
+
 ```bash
 # 1. Clone o repositório
 git clone <url-do-repositorio> deb2pacman
 cd deb2pacman
- 
-# 2. Instale o script como "deb2pacman" (já com permissão de execução)
-sudo install -Dm755 main.lua /usr/local/bin/deb2pacman
 
-# 3. tem a opção de instalar via curl 
-curl -sSL [https://raw.githubusercontent.com/Raph-Rodrigues/deb2pacman/refs/heads/main/install.sh](https://raw.githubusercontent.com/Raph-Rodrigues/deb2pacman/refs/heads/main/install.sh) | sudo bash
+# 2. Instale as dependências e os arquivos (usa os arquivos locais)
+sudo ./install.sh
+```
+
+Também é possível instalar a versão da branch `main` diretamente pela internet:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Raph-Rodrigues/deb2pacman/refs/heads/main/install.sh | sudo bash
 ```
 
 Para desinstalar:
- 
+
 ```bash
-sudo rm /usr/local/bin/deb2pacman
+sudo rm -rf /usr/local/bin/deb2pacman /usr/local/lib/deb2pacman
 ```
- 
-> Se preferir não instalar, basta executar direto: `lua main.lua arquivo.deb`.
+
+> Se preferir não instalar, basta executar direto do repositório: `lua main.lua arquivo.deb`.
  
 ---
  
@@ -283,6 +287,53 @@ Dica: use `pacman -F <arquivo.so>` (após `sudo pacman -Fy`) para descobrir qual
  
 ---
  
+## 🔖 Versionamento e release
+
+O `PKGBUILD` baixa automaticamente o tarball da tag `v${pkgver}` do GitHub. Para não editar a versão à mão, use o script `bump-version.sh`:
+
+```bash
+./bump-version.sh                 # 1.0.3 -> 1.0.4 (patch)
+./bump-version.sh minor           # 1.0.3 -> 1.1.0
+./bump-version.sh major           # 1.0.3 -> 2.0.0
+./bump-version.sh set 3.2.1       # define uma versão específica
+```
+
+O script também zera o `pkgrel` e atualiza o `.SRCINFO` quando ele existir. Para criar o commit e a tag de release:
+
+```bash
+# 1. Commit primeiro as alterações de código
+git add .
+git commit -m "fix: ..."
+
+# 2. Incrementa a versão, commita o PKGBUILD e cria a tag vX.Y.Z
+./bump-version.sh patch --commit --tag
+
+# 3. Envia o commit e a tag (a tag dispara o workflow de release)
+git push origin HEAD --follow-tags
+```
+
+Ou use `./bump-version.sh patch --commit --tag --push` para fazer tudo de uma vez. O workflow `.github/workflows/release.yaml` compila o pacote e publica o `.pkg.tar.zst` na release da tag.
+
+### Build local com makepkg
+
+```bash
+makepkg -si
+```
+
+Todos os artefatos do build ficam dentro de `build/`:
+
+```text
+build/
+├── deb2pacman-1.0.3-1-any.pkg.tar.zst
+├── deb2pacman/
+│   ├── src/   # fontes extraídas
+│   └── pkg/   # árvore de arquivos do pacote
+├── logs/
+└── sources/
+```
+
+---
+
 ## ⚠️ Limitações conhecidas
  
 O deb2pacman faz uma conversão **direta e simples**; ele não substitui o trabalho de um `PKGBUILD` bem feito. Tenha em mente:
@@ -298,8 +349,8 @@ O deb2pacman faz uma conversão **direta e simples**; ele não substitui o traba
 - 🔀 Alternativas (`pacote-a | pacote-b`) e qualificadores (`pacote:any`) não são tratados.
 - 🔢 Restrições de versão são descartadas.
 **Execução**
-- 📂 Informe o `.deb` por **caminho relativo** ao diretório atual; caminhos absolutos não são suportados. Evite também espaços no nome do arquivo.
-- 🧪 Falhas durante a extração não são detectadas: se o `control` não puder ser lido, o script segue com os valores padrão (pacote chamado `pacote-convertido-bin`).
+- 📂 Caminhos relativos e absolutos são aceitos, inclusive com espaços no nome do arquivo.
+- 🧪 Se o arquivo `control` não existir após a extração, o script usa valores padrão (pacote chamado `pacote-convertido-bin`).
 - ♻️ Se vários arquivos forem passados, apenas o **último** é convertido.
 - 🏗️ Arquiteturas fora de `amd64`, `i386` e `all` (ex.: `arm64`) são mantidas com o nome do Debian, que o Arch não reconhece (`aarch64`).
 - 📛 O pacote **sempre** recebe o sufixo `-bin` e `pkgrel` fixo em `1`.
