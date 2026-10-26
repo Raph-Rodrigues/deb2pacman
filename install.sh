@@ -12,11 +12,11 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo "-> Instalando dependências..."
-pacman -S --needed --noconfirm lua binutils libarchive zstd xz
+pacman -S --needed --noconfirm lua binutils libarchive zstd xz curl
 
 INSTALL_DIR="/usr/local/lib/deb2pacman"
 BIN_PATH="/usr/local/bin/deb2pacman"
-FILES=(main.lua utils.lua logger.lua extractor.lua builder.lua translator.lua)
+FILES=(main.lua utils.lua logger.lua extractor.lua builder.lua translator.lua metadata.lua converter.lua sources.lua updater.lua)
 SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
 LOCAL_DIR=""
 

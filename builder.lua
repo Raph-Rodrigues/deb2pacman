@@ -1,10 +1,12 @@
 local builder = {}
 local translator = require("translator")
 local utils = require("utils")
+local metadata = require("metadata")
 
 function builder.parse_control(tmp_dir, deb_file, verbose, logger)
 	local control_file = io.open(tmp_dir .. "/control/control", "r")
 	local pkgname, pkgver, arch, pkgdesc = "pacote-convertido", "1.0-1", "x86_64", "Convertido de " .. deb_file
+	local deb_version = "1.0-1"
 	local depends_list = {}
 
 	if control_file then
@@ -13,7 +15,8 @@ function builder.parse_control(tmp_dir, deb_file, verbose, logger)
 				pkgname = line:match("^Package: (.*)"):lower()
 			end
 			if line:match("^Version: (.*)") then
-				pkgver = line:match("^Version: (.*)"):gsub("-", "_") .. "-1"
+				deb_version = line:match("^Version: (.*)")
+				pkgver = deb_version:gsub("-", "_") .. "-1"
 			end
 			if line:match("^Architecture: (.*)") then
 				local a = line:match("^Architecture: (.*)")
@@ -34,10 +37,10 @@ function builder.parse_control(tmp_dir, deb_file, verbose, logger)
 		print("   Nome: " .. pkgname .. "\n   Versão: " .. pkgver .. "\n   Arquitetura: " .. arch)
 		print("   Dependências: " .. table.concat(depends_list, ", "))
 	end
-	return pkgname, pkgver, arch, pkgdesc, depends_list
+	return pkgname, pkgver, arch, pkgdesc, depends_list, deb_version
 end
 
-function builder.build(tmp_dir, pwd, pkgname, pkgver, arch, pkgdesc, deps, verbose, logger)
+function builder.build(tmp_dir, pwd, pkgname, pkgver, arch, pkgdesc, deps, verbose, logger, extra_metadata)
 	local pkginfo = io.open(tmp_dir .. "/pkg/.PKGINFO", "w")
 	if not pkginfo then
 		logger.err("Não foi possível criar o arquivo .PKGINFO")
@@ -52,6 +55,13 @@ function builder.build(tmp_dir, pwd, pkgname, pkgver, arch, pkgdesc, deps, verbo
 	end
 	pkginfo:write("builddate = " .. os.time() .. "\n")
 	pkginfo:close()
+
+	if extra_metadata then
+		local ok_marker, marker_err = metadata.write_package_marker(tmp_dir .. "/pkg", extra_metadata)
+		if not ok_marker then
+			logger.err("Não foi possível gravar os metadados do pacote: " .. tostring(marker_err))
+		end
+	end
 
 	local output_pkg = pkgname .. "-bin-" .. pkgver .. "-" .. arch .. ".pkg.tar.zst"
 	local output_path = utils.to_absolute(output_pkg, pwd)

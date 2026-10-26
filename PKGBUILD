@@ -6,7 +6,7 @@ pkgdesc="Conversor de pacotes Debian (.deb) para Arch Linux (.pkg.tar.zst) escri
 arch=('any')
 url="https://github.com/Raph-Rodrigues/deb2pacman"
 license=('MIT')
-depends=('lua' 'binutils' 'libarchive' 'zstd' 'xz')
+depends=('lua' 'binutils' 'libarchive' 'zstd' 'xz' 'curl')
 
 # Mantém todos os artefatos do makepkg dentro de ./build.
 # $startdir é definido pelo makepkg antes de carregar este arquivo.
