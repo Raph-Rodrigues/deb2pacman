@@ -1,6 +1,6 @@
 # Maintainer: Raph-Rodrigues <raph.edits06l@gmail.com>
 pkgname=deb2pacman
-pkgver=1.0.3
+pkgver=1.0.4
 pkgrel=1
 pkgdesc="Conversor de pacotes Debian (.deb) para Arch Linux (.pkg.tar.zst) escrito em Lua"
 arch=('any')
